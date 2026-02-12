@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>바이브 코딩 | 스마트 문서 수집기</title>
+    <style>
+        body { font-family: 'Pretendard', sans-serif; background-color: #f4f7f9; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .upload-card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 400px; }
+        h2 { color: #333; margin-bottom: 20px; }
+        input[type="email"], input[type="file"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; border: none; padding: 15px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; transition: background 0.3s; }
+        button:hover { background-color: #0056b3; }
+        #status { margin-top: 20px; font-size: 14px; font-weight: 500; }
+        .loader { color: #555; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+    </style>
+</head>
+<body>
+
+    <div class="upload-card">
+        <h2>📁 문서 업로드</h2>
+        <p style="color: #666; font-size: 14px;">지정된 이메일 사용자만 이용 가능합니다.</p>
+        
+        <input type="email" id="userEmail" placeholder="허용된 이메일을 입력하세요" required>
+        
+        <input type="file" id="fileInput">
+        
+        <button onclick="uploadFile()">구글 드라이브로 전송</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // ⚠️ 주의: 구글 앱스 스크립트 배포 후 받은 URL을 여기에 넣으세요!
+        const GAS_URL = "https://script.google.com/a/macros/rsupport.com/s/AKfycbw3oPNigZ04Z8rW70c-a-AKsWmrx327rrVyiKtvS8sGHw1orpbuzjENCYcYW3jnA4FC/exec";
+
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const emailInput = document.getElementById('userEmail');
+            const status = document.getElementById('status');
+            
+            if (!emailInput.value) { alert("이메일을 입력해주세요."); return; }
+            if (fileInput.files.length === 0) { alert("파일을 선택해주세요."); return; }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            status.innerHTML = '<span class="loader">⏳ 업로드 및 분석 중...</span>';
+            status.className = "";
+
+            reader.onload = function(e) {
+                const base64Data = e.target.result.split(',')[1];
+                
+                const formData = new URLSearchParams();
+                formData.append('fileData', base64Data);
+                formData.append('filename', file.name);
+                formData.append('mimeType', file.type);
+                formData.append('userEmail', emailInput.value); // 이메일 데이터 추가
+
+                fetch(GAS_URL, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.result === "success") {
+                        status.innerHTML = '<span class="success">✅ 완료! 드라이브에 저장되었습니다.</span>';
+                    } else {
+                        status.innerHTML = '<span class="error">❌ 오류: ' + data.error + '</span>';
+                    }
+                })
+                .catch(err => {
+                    status.innerHTML = '<span class="error">❌ 네트워크 오류가 발생했습니다.</span>';
+                    console.error(err);
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    </script>
+</body>
+</html>
